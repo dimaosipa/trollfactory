@@ -40,7 +40,10 @@ jobs:
         mkdir -p ~/.ssh
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        scp -o StrictHostKeyChecking=no -r . $VPS_USER@$VPS_HOST:/home/$VPS_USER/FabrikaTroliv
+        # Create target directory and ensure proper permissions
+        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST 'mkdir -p /home/$VPS_USER/FabrikaTroliv && chmod 755 /home/$VPS_USER/FabrikaTroliv'
+        # Copy files excluding .git directory
+        rsync -avz --exclude='.git/' -e "ssh -o StrictHostKeyChecking=no" ./ $VPS_USER@$VPS_HOST:/home/$VPS_USER/FabrikaTroliv/
 
     - name: Stop existing bot processes
       env:
