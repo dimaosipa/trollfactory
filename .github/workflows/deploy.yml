@@ -22,7 +22,7 @@ jobs:
           echo "ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }}" >> .env
 
       - name: Zip project
-        run: tar -czf FabrikaTroliv.zip --exclude='.git' --exclude='FabrikaTroliv.zip' .
+        run: tar -czf FabrikaTroliv.zip --warning=no-file-changed --exclude='.git' --exclude='FabrikaTroliv.zip' .
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
