@@ -22,7 +22,7 @@ jobs:
           echo "ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }}" >> .env
 
       - name: Zip project
-        run: tar -czf FabrikaTroliv.zip --warning=no-file-changed --exclude='.git' --exclude='FabrikaTroliv.zip' .
+        run: tar -czvf FabrikaTroliv.tar.gz --warning=no-file-changed --exclude='.git' --exclude='FabrikaTroliv.tar.gz' .
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
@@ -42,9 +42,9 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cp /home/${{ secrets.VPS_USER }}/FabrikaTroliv.zip /home/${{ secrets.VPS_USER }}/FabrikaTroliv/
-            cd /home/${{ secrets.VPS_USER }}/FabrikaTroliv && tar -xzf FabrikaTroliv.zip
+            cp /home/${{ secrets.VPS_USER }}/FabrikaTroliv.tar.gz /home/${{ secrets.VPS_USER }}/FabrikaTroliv/
+            cd /home/${{ secrets.VPS_USER }}/FabrikaTroliv && tar -xzf FabrikaTroliv.tar.gz
             pip install -r requirements.txt
             nohup python bot.py > bot.log 2>&1 &
-          source: "FabrikaTroliv.zip"
-          target: "/home/${{ secrets.VPS_USER }}/FabrikaTroliv.zip"
+          source: "FabrikaTroliv.tar.gz"
+          target: "/home/${{ secrets.VPS_USER }}/FabrikaTroliv.tar.gz"
