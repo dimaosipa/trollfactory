@@ -24,6 +24,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Inject environment variables
+      run: |
+        echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
+        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+        echo "TELEGRAM_CHANNEL_ID=${{ secrets.TELEGRAM_CHANNEL_ID }}" >> .env
+        echo "ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }}" >> .env
+
     - name: Copy files to VPS
       env:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -35,9 +42,16 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         scp -o StrictHostKeyChecking=no -r . $VPS_USER@$VPS_HOST:/home/$VPS_USER/FabrikaTroliv
 
-    - name: Restart bot service on VPS
+    - name: Stop bot service on VPS
       env:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST 'sudo systemctl restart fabrikatroliv'
+        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST 'sudo systemctl stop fabrikatroliv'
+
+    - name: Start bot service on VPS
+      env:
+        VPS_USER: ${{ secrets.VPS_USER }}
+        VPS_HOST: ${{ secrets.VPS_HOST }}
+      run: |
+        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST 'cd /home/$VPS_USER/FabrikaTroliv && python bot.py &'
