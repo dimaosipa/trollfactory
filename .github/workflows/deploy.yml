@@ -66,21 +66,17 @@ jobs:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-        # Create target directory
+        echo "Stopping old bot..."
+        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "pkill -f 'python bot.py' || true"
+        
+        echo "Removing existing directory if it exists..."
+        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "if [ -d /home/$VPS_USER/FabrikaTroliv ]; then rm -rf /home/$VPS_USER/FabrikaTroliv; fi"
+        
         echo "Creating target directory..."
         ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "mkdir -p /home/$VPS_USER/FabrikaTroliv || true"
         
-        # Copy files using tar over ssh (more efficient than scp for many files)
         echo "Copying files to VPS..."
         tar -czf - --exclude='.git' . | ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "cd /home/$VPS_USER/FabrikaTroliv && tar -xzf -"
         
-        # Pkill any existing bot process
-        echo "Stopping any existing bot process..."
-        ssh -o ConnectTimeout=30 \
-        -o StrictHostKeyChecking=no \
-        "$VPS_USER@$VPS_HOST" \
-        'pkill -f "python bot.py" || echo "No process to kill"'
-        
-        # Start bot service on VPS
-        echo "Starting bot service..."
+        echo "Starting bot..."
         ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "cd /home/$VPS_USER/FabrikaTroliv && nohup python bot.py > bot.log 2>&1 &"
