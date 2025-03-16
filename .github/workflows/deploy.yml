@@ -40,8 +40,8 @@ jobs:
         mkdir -p ~/.ssh
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        # Create target directory and ensure proper permissions
-        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST 'mkdir -p /home/$VPS_USER/FabrikaTroliv && chmod 755 /home/$VPS_USER/FabrikaTroliv'
+        # Create target directory with proper variable expansion
+        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "mkdir -p /home/$VPS_USER/FabrikaTroliv && chmod 755 /home/$VPS_USER/FabrikaTroliv"
         # Copy files excluding .git directory
         rsync -avz --exclude='.git/' -e "ssh -o StrictHostKeyChecking=no" ./ $VPS_USER@$VPS_HOST:/home/$VPS_USER/FabrikaTroliv/
 
@@ -50,11 +50,11 @@ jobs:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST 'pkill -f "python bot.py" || true'
+        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "pkill -f \"python bot.py\" || true"
 
     - name: Start bot service on VPS using nohup
       env:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST 'cd /home/$VPS_USER/FabrikaTroliv && nohup python bot.py > bot.log 2>&1 &'
+        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "cd /home/$VPS_USER/FabrikaTroliv && nohup python bot.py > bot.log 2>&1 &"
