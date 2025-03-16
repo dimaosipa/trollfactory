@@ -42,8 +42,8 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         # Create target directory with proper variable expansion
         ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "mkdir -p /home/$VPS_USER/FabrikaTroliv && chmod 755 /home/$VPS_USER/FabrikaTroliv"
-        # Copy files excluding .git directory
-        rsync -avz --exclude='.git/' -e "ssh -o StrictHostKeyChecking=no" ./ $VPS_USER@$VPS_HOST:/home/$VPS_USER/FabrikaTroliv/
+        # Use scp instead of rsync, and exclude .git directory
+        find . -type f -not -path "./.git/*" -exec scp -o StrictHostKeyChecking=no {} $VPS_USER@$VPS_HOST:/home/$VPS_USER/FabrikaTroliv/{} \;
 
     - name: Stop existing bot processes
       env:
