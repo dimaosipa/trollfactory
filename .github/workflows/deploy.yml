@@ -11,72 +11,40 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.8'
+      - name: Inject secrets
+        run: |
+          echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+          echo "TELEGRAM_CHANNEL_ID=${{ secrets.TELEGRAM_CHANNEL_ID }}" >> .env
+          echo "ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }}" >> .env
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Zip project
+        run: tar -czf FabrikaTroliv.zip .
 
-    - name: Inject environment variables
-      run: |
-        echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
-        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
-        echo "TELEGRAM_CHANNEL_ID=${{ secrets.TELEGRAM_CHANNEL_ID }}" >> .env
-        echo "ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }}" >> .env
-
-    - name: Setup SSH
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        VPS_USER: ${{ secrets.VPS_USER }}
-        VPS_HOST: ${{ secrets.VPS_HOST }}
-      run: |
-        mkdir -p ~/.ssh
-        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H $VPS_HOST >> ~/.ssh/known_hosts
-        # Test SSH connection
-        echo "Testing SSH connection..."
-        ssh -v -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "echo SSH connection successful"
-
-    - name: Ensure pkill is installed
-      env:
-        VPS_USER: ${{ secrets.VPS_USER }}
-        VPS_HOST: ${{ secrets.VPS_HOST }}
-      run: |
-        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "sudo apt-get update && sudo apt-get install -y procps"
-
-    - name: Debug SSH
-      env:
-        VPS_USER: ${{ secrets.VPS_USER }}
-        VPS_HOST: ${{ secrets.VPS_HOST }}
-      run: |
-        set -x
-        ssh -v -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "pwd && ls -la /home/$VPS_USER"
-
-    - name: Deploy to VPS
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        VPS_USER: ${{ secrets.VPS_USER }}
-        VPS_HOST: ${{ secrets.VPS_HOST }}
-      run: |
-        echo "Stopping old bot..."
-        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "pkill -f 'python bot.py' || true"
-        
-        echo "Removing existing directory if it exists..."
-        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "if [ -d /home/$VPS_USER/FabrikaTroliv ]; then rm -rf /home/$VPS_USER/FabrikaTroliv; fi"
-        
-        echo "Creating target directory..."
-        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "mkdir -p /home/$VPS_USER/FabrikaTroliv || true"
-        
-        echo "Copying files to VPS..."
-        tar -czf - --exclude='.git' . | ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "cd /home/$VPS_USER/FabrikaTroliv && tar -xzf -"
-        
-        echo "Starting bot..."
-        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "cd /home/$VPS_USER/FabrikaTroliv && nohup python bot.py > bot.log 2>&1 &"
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            pkill -f "python bot.py" || true
+            rm -rf /home/${{ secrets.VPS_USER }}/FabrikaTroliv
+            mkdir /home/${{ secrets.VPS_USER }}/FabrikaTroliv
+            exit
+      - name: Upload & Install
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cp /home/${{ secrets.VPS_USER }}/FabrikaTroliv.zip /home/${{ secrets.VPS_USER }}/FabrikaTroliv/
+            cd /home/${{ secrets.VPS_USER }}/FabrikaTroliv && tar -xzf FabrikaTroliv.zip
+            pip install -r requirements.txt
+            nohup python bot.py > bot.log 2>&1 &
+          source: "FabrikaTroliv.zip"
+          target: "/home/${{ secrets.VPS_USER }}/FabrikaTroliv.zip"
