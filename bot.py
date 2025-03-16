@@ -104,7 +104,7 @@ def generate_rewrite_with_gpt(text: str) -> str:
                     "content": f"{text}"
                 }
             ],
-            temperature=0.5,
+            temperature=0.7,
         )
         
         rewritten_text = response.choices[0].message.content
