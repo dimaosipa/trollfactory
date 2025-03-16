@@ -58,7 +58,7 @@ jobs:
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
         set -x
-        ssh -v -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "pwd"
+        ssh -v -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "pwd && ls -la /home/$VPS_USER"
 
     - name: Deploy to VPS
       env:
@@ -68,7 +68,7 @@ jobs:
       run: |
         # Create target directory
         echo "Creating target directory..."
-        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "mkdir -p /home/$VPS_USER/FabrikaTroliv"
+        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "mkdir -p /home/$VPS_USER/FabrikaTroliv || true"
         
         # Copy files using tar over ssh (more efficient than scp for many files)
         echo "Copying files to VPS..."
