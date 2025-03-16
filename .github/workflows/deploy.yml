@@ -31,7 +31,7 @@ jobs:
         echo "TELEGRAM_CHANNEL_ID=${{ secrets.TELEGRAM_CHANNEL_ID }}" >> .env
         echo "ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }}" >> .env
 
-    - name: Copy files to VPS
+    - name: Setup SSH
       env:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         VPS_USER: ${{ secrets.VPS_USER }}
@@ -40,21 +40,28 @@ jobs:
         mkdir -p ~/.ssh
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        # Create target directory with proper variable expansion
-        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "mkdir -p /home/$VPS_USER/FabrikaTroliv && chmod 755 /home/$VPS_USER/FabrikaTroliv"
-        # Use scp instead of rsync, and exclude .git directory
-        find . -type f -not -path "./.git/*" -exec scp -o StrictHostKeyChecking=no {} $VPS_USER@$VPS_HOST:/home/$VPS_USER/FabrikaTroliv/{} \;
+        ssh-keyscan -H $VPS_HOST >> ~/.ssh/known_hosts
+        # Test SSH connection
+        echo "Testing SSH connection..."
+        ssh -v -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "echo SSH connection successful"
 
-    - name: Stop existing bot processes
+    - name: Deploy to VPS
       env:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "pkill -f \"python bot.py\" || true"
-
-    - name: Start bot service on VPS using nohup
-      env:
-        VPS_USER: ${{ secrets.VPS_USER }}
-        VPS_HOST: ${{ secrets.VPS_HOST }}
-      run: |
-        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "cd /home/$VPS_USER/FabrikaTroliv && nohup python bot.py > bot.log 2>&1 &"
+        # Create target directory
+        echo "Creating target directory..."
+        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "mkdir -p /home/$VPS_USER/FabrikaTroliv"
+        
+        # Copy files using tar over ssh (more efficient than scp for many files)
+        echo "Copying files to VPS..."
+        tar -czf - --exclude='.git' . | ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "cd /home/$VPS_USER/FabrikaTroliv && tar -xzf -"
+        
+        # Stop existing bot processes (with error handling)
+        echo "Stopping existing bot processes..."
+        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "pkill -f \"python bot.py\" || echo 'No process to kill'"
+        
+        # Start bot service on VPS
+        echo "Starting bot service..."
+        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "cd /home/$VPS_USER/FabrikaTroliv && nohup python bot.py > bot.log 2>&1 &"
