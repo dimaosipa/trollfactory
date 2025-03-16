@@ -52,6 +52,14 @@ jobs:
       run: |
         ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "sudo apt-get update && sudo apt-get install -y procps"
 
+    - name: Debug SSH
+      env:
+        VPS_USER: ${{ secrets.VPS_USER }}
+        VPS_HOST: ${{ secrets.VPS_HOST }}
+      run: |
+        set -x
+        ssh -v -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "pwd"
+
     - name: Deploy to VPS
       env:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
