@@ -54,6 +54,7 @@ jobs:
 
     - name: Deploy to VPS
       env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
@@ -65,9 +66,10 @@ jobs:
         echo "Copying files to VPS..."
         tar -czf - --exclude='.git' . | ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "cd /home/$VPS_USER/FabrikaTroliv && tar -xzf -"
         
-        # Stop existing bot processes (with error handling)
-        echo "Stopping existing bot processes..."
-        ssh -o ConnectTimeout=30 -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "pkill -f \"python bot.py\" || echo 'No process to kill'"
+        ssh -o ConnectTimeout=30 \
+        -o StrictHostKeyChecking=no \
+        "$VPS_USER@$VPS_HOST" \
+        'pkill -f "python bot.py" || echo "No process to kill"'
         
         # Start bot service on VPS
         echo "Starting bot service..."
