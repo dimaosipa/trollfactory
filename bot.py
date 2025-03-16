@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID")
-ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", 0))
+ADMIN_USER_IDS = list(map(int, os.getenv("ADMIN_USER_ID", "").split(',')))
 
 # Initialize the OpenAI client
 client = OpenAI(api_key=OPENAI_API_KEY)
@@ -47,7 +47,6 @@ SYSTEM_PROMPT = """Ти — анонімний інсайдер, який вед
 
 🔹 Формат вихідного тексту:
 
-Загадковий вступ або натяк на витік інформації.
 Чітке твердження про подію, що ґрунтується на "злитих" даних.
 Підтвердження через непрямі факти або заяви (але без посилань на оригінальну новину).
 Аналітика: що це означає стратегічно? (у форматі коротких тез).
@@ -121,7 +120,7 @@ def restricted(func):
     @wraps(func)
     def wrapped(update, context, *args, **kwargs):
         user_id = update.effective_user.id
-        if user_id != ADMIN_USER_ID:
+        if user_id not in ADMIN_USER_IDS:
             logger.warning(f"Unauthorized access denied for {user_id}.")
             update.message.reply_text("Sorry, you are not authorized to use this bot.")
             return

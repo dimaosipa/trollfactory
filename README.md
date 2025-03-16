@@ -39,13 +39,13 @@ This Telegram bot transforms official news into anonymous insider-style posts fo
    TELEGRAM_BOT_TOKEN=your_telegram_bot_token
    OPENAI_API_KEY=your_openai_api_key
    TELEGRAM_CHANNEL_ID=your_channel_id
-   ADMIN_USER_ID=your_telegram_user_id
+   ADMIN_USER_ID=your_telegram_user_ids
    ```
 
    - **TELEGRAM_BOT_TOKEN**: Obtain from [BotFather](https://t.me/botfather)
    - **OPENAI_API_KEY**: Get from the [OpenAI Dashboard](https://platform.openai.com/account/api-keys)
    - **TELEGRAM_CHANNEL_ID**: The ID of your channel (usually starts with `-100`)
-   - **ADMIN_USER_ID**: Your Telegram user ID (can be obtained from [@userinfobot](https://t.me/userinfobot))
+   - **ADMIN_USER_ID**: Your Telegram user IDs (comma-separated, can be obtained from [@userinfobot](https://t.me/userinfobot))
 
 4. **Make your bot an admin of the target channel**
 
