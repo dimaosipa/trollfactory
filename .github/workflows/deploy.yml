@@ -42,16 +42,16 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         scp -o StrictHostKeyChecking=no -r . $VPS_USER@$VPS_HOST:/home/$VPS_USER/FabrikaTroliv
 
-    - name: Stop bot service on VPS
+    - name: Stop existing bot processes
       env:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST 'sudo systemctl stop fabrikatroliv'
+        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST 'pkill -f "python bot.py" || true'
 
-    - name: Start bot service on VPS
+    - name: Start bot service on VPS using nohup
       env:
         VPS_USER: ${{ secrets.VPS_USER }}
         VPS_HOST: ${{ secrets.VPS_HOST }}
       run: |
-        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST 'cd /home/$VPS_USER/FabrikaTroliv && python bot.py &'
+        ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST 'cd /home/$VPS_USER/FabrikaTroliv && nohup python bot.py > bot.log 2>&1 &'
