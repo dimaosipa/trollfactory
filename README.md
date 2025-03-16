@@ -49,6 +49,26 @@ This Telegram bot transforms official news into anonymous insider-style posts fo
 
 4. **Make your bot an admin of the target channel**
 
+## Docker Setup
+
+### Building the Docker Image
+
+1. **Build the Docker image**
+
+   ```bash
+   ./build.sh
+   ```
+
+### Running the Docker Container
+
+1. **Run the Docker container with the .env file**
+
+   ```bash
+   docker run --env-file .env -d --name fabrika-troliv fabrika-troliv:latest
+   ```
+
+   This command will start the Docker container and load the environment variables from the `.env` file.
+
 ## Usage
 
 1. **Start the bot**

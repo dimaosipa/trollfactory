@@ -1,18 +1,32 @@
-# Create a GitHub Actions workflow to deploy the bot on every push to the deploy branch
 name: Deploy to VPS
 
 on:
-  push:
-    branches:
-      - deploy
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to deploy'
+        required: true
+        default: 'latest'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set environment variables
+        run: echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
+
       - name: Check out code
         uses: actions/checkout@v3
+
+      - name: Transfer .env file
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: ".env"
+          target: "~/fabrika-troliv/.env"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
@@ -21,27 +35,12 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Stop any running bot
-            pkill -f "python bot.py" || true
-            
-            # Clean up and recreate directory
-            rm -rf /home/${{ secrets.VPS_USER }}/FabrikaTroliv
-            mkdir -p /home/${{ secrets.VPS_USER }}/FabrikaTroliv
-            
-            # Clone the repository directly
-            git clone --branch deploy https://github.com/${{ github.repository }}.git /home/${{ secrets.VPS_USER }}/FabrikaTroliv
-            
-            # Navigate to project directory
-            cd /home/${{ secrets.VPS_USER }}/FabrikaTroliv
-            
-            # Create .env file with secrets
-            echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" > .env
-            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
-            echo "TELEGRAM_CHANNEL_ID=${{ secrets.TELEGRAM_CHANNEL_ID }}" >> .env
-            echo "ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }}" >> .env
-            
-            # Install dependencies
-            pip install -r requirements.txt
-            
-            # Start the bot
-            nohup python bot.py > bot.log 2>&1 &
+            # Stop and remove any running container
+            docker stop fabrika-troliv || true
+            docker rm fabrika-troliv || true
+
+            # Pull the new image from GitHub Container Registry
+            docker pull ghcr.io/${{ github.repository }}/fabrika-troliv:${{ env.IMAGE_TAG }}
+
+            # Run the new container with the .env file
+            docker run -d --name fabrika-troliv --env-file ~/fabrika-troliv/.env ghcr.io/${{ github.repository }}/fabrika-troliv:${{ env.IMAGE_TAG }}
