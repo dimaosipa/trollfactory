@@ -16,13 +16,6 @@ jobs:
       - name: Set environment variables
         run: echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -78,6 +71,9 @@ jobs:
             # Stop and remove any running container
             docker stop fabrika-troliv || true
             docker rm fabrika-troliv || true
+
+            # Log in to GitHub Container Registry
+            docker login ghcr.io -u ${{ github.actor }} -p ${{ secrets.GITHUB_TOKEN }}
 
             # Pull the new image from GitHub Container Registry
             docker pull ghcr.io/${{ github.repository }}/fabrika-troliv:${{ env.IMAGE_TAG }}
