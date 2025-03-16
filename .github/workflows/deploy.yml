@@ -11,19 +11,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Inject secrets
-        run: |
-          echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" >> .env
-          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
-          echo "TELEGRAM_CHANNEL_ID=${{ secrets.TELEGRAM_CHANNEL_ID }}" >> .env
-          echo "ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }}" >> .env
-
-      - name: Zip project
-        run: tar -czf FabrikaTroliv.tar.gz --exclude='.git' --exclude='./*.gz' .
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -31,20 +18,27 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Stop any running bot
             pkill -f "python bot.py" || true
+            
+            # Clean up and recreate directory
             rm -rf /home/${{ secrets.VPS_USER }}/FabrikaTroliv
-            mkdir /home/${{ secrets.VPS_USER }}/FabrikaTroliv
-            exit
-      - name: Upload & Install
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cp /home/${{ secrets.VPS_USER }}/FabrikaTroliv.tar.gz /home/${{ secrets.VPS_USER }}/FabrikaTroliv/
-            cd /home/${{ secrets.VPS_USER }}/FabrikaTroliv && tar -xzf FabrikaTroliv.tar.gz
+            mkdir -p /home/${{ secrets.VPS_USER }}/FabrikaTroliv
+            
+            # Clone the repository directly
+            git clone --branch deploy https://github.com/${{ github.repository }}.git /home/${{ secrets.VPS_USER }}/FabrikaTroliv
+            
+            # Navigate to project directory
+            cd /home/${{ secrets.VPS_USER }}/FabrikaTroliv
+            
+            # Create .env file with secrets
+            echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" > .env
+            echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
+            echo "TELEGRAM_CHANNEL_ID=${{ secrets.TELEGRAM_CHANNEL_ID }}" >> .env
+            echo "ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }}" >> .env
+            
+            # Install dependencies
             pip install -r requirements.txt
+            
+            # Start the bot
             nohup python bot.py > bot.log 2>&1 &
-          source: "FabrikaTroliv.tar.gz"
-          target: "/home/${{ secrets.VPS_USER }}/FabrikaTroliv.tar.gz"
