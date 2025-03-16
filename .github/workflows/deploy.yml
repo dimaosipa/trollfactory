@@ -16,18 +16,6 @@ jobs:
       - name: Set environment variables
         run: echo "IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
 
-      - name: Check out code
-        uses: actions/checkout@v3
-
-      - name: Transfer .env file
-        uses: appleboy/scp-action@master
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: ".env"
-          target: "~/fabrika-troliv/.env"
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@master
         with:
@@ -35,6 +23,17 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Create the project directory if it doesn't exist
+            mkdir -p ~/fabrika-troliv
+            
+            # Generate .env file from secrets
+            cat > ~/fabrika-troliv/.env << EOF
+            TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+            OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            TELEGRAM_CHANNEL_ID=${{ secrets.TELEGRAM_CHANNEL_ID }}
+            ADMIN_USER_ID=${{ secrets.ADMIN_USER_ID }}
+            EOF
+            
             # Stop and remove any running container
             docker stop fabrika-troliv || true
             docker rm fabrika-troliv || true
